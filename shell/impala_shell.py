@@ -137,6 +137,11 @@ class ImpalaShell(cmd.Cmd):
     # Tracks query handle of the last query executed. Used by the 'profile' command.
     self.last_query_handle = None;
     self.query_handle_closed = None
+    
+    # RUOWEN START
+    self.all_table_list = []
+    self.is_collecting_all_tables = False
+    # RUOWEN END
 
     try:
       self.readline = __import__('readline')
@@ -669,7 +674,12 @@ class ImpalaShell(cmd.Cmd):
         num_rows = 0
 
         for rows in rows_fetched:
-          self.output_stream.write(rows)
+          # RUOWEN store SHOW TABLES result
+          if self.is_collecting_all_tables:
+            for each_row in rows:
+              self.all_table_list.append(each_row[0])
+          else:
+            self.output_stream.write(rows)
           num_rows += len(rows)
 
         # retrieve the error log
@@ -768,6 +778,8 @@ class ImpalaShell(cmd.Cmd):
                                                  self.set_query_options)
     if self._execute_stmt(query) is CmdStatus.SUCCESS:
       self.current_db = args
+      # RUOWEN collect all table names when use one db
+      self.collectAllTables()
     else:
       return CmdStatus.ERROR
 
@@ -877,6 +889,20 @@ class ImpalaShell(cmd.Cmd):
     # If the user input is lower case or mixed case, return lower case commands.
     return cmd_names
 
+  # RUOWEN START
+  def collectAllTables(self):
+    self.all_table_list = []
+    self.is_collecting_all_tables = True
+    self.do_show("tables")
+    self.is_collecting_all_tables = False
+
+  def completedefault(self, text, line, begidx, endidx):
+    if not text:
+      completions = self.all_table_list[:]
+    else:
+      completions = [table for table in self.all_table_list if table.startswith(text)]
+    return completions
+  # RUOWEN END
 
 WELCOME_STRING = """Welcome to the Impala shell. Press TAB twice to see a list of \
 available commands.
