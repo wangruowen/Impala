@@ -114,6 +114,12 @@ class ImpalaShell(cmd.Cmd):
 
     self.refresh_after_connect = options.refresh_after_connect
     self.current_db = options.default_db
+        
+    # RUOWEN START
+    self.all_table_list = []
+    self.is_collecting_all_tables = False
+    # RUOWEN END
+
     self.history_file = os.path.expanduser("~/.impalahistory")
     # Stores the state of user input until a delimiter is seen.
     self.partial_cmd = str()
@@ -138,11 +144,6 @@ class ImpalaShell(cmd.Cmd):
     self.last_query_handle = None;
     self.query_handle_closed = None
     
-    # RUOWEN START
-    self.all_table_list = []
-    self.is_collecting_all_tables = False
-    # RUOWEN END
-
     try:
       self.readline = __import__('readline')
       self.readline.set_history_length(HISTORY_LENGTH)
@@ -558,7 +559,7 @@ class ImpalaShell(cmd.Cmd):
       self.cmdqueue.append(('use `%s`' % self.current_db) + ImpalaShell.CMD_DELIM)
 
   def _print_if_verbose(self, message):
-    if self.verbose:
+    if self.verbose and not self.is_collecting_all_tables:
       print_to_stderr(message)
 
   def print_runtime_profile(self, profile, status=False):
